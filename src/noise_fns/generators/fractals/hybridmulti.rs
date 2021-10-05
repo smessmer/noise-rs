@@ -40,6 +40,7 @@ pub struct HybridMulti {
 
     seed: u32,
     sources: Vec<Perlin>,
+    scale_factor: f64,
 }
 
 impl HybridMulti {
@@ -58,7 +59,32 @@ impl HybridMulti {
             lacunarity: Self::DEFAULT_LACUNARITY,
             persistence: Self::DEFAULT_PERSISTENCE,
             sources: super::build_sources(Self::DEFAULT_SEED, Self::DEFAULT_OCTAVES),
+            scale_factor: Self::calc_scale_factor(Self::DEFAULT_PERSISTENCE, Self::DEFAULT_OCTAVES),
         }
+    }
+
+    fn calc_scale_factor(persistence: f64, octaves: usize) -> f64 {
+        let mut result = persistence;
+
+        // Do octave 0
+        let mut amplitude = persistence;
+        let mut weight = result;
+        let mut signal = amplitude;
+        weight *= signal;
+
+        result += signal;
+
+        if octaves >= 1 {
+            result += (1..=octaves).fold(0.0, |acc, _| {
+                amplitude *= persistence;
+                weight = weight.max(1.0);
+                signal = amplitude;
+                weight *= signal;
+                acc + signal
+            });
+        }
+
+        2.0 / result
     }
 }
 
@@ -78,6 +104,7 @@ impl MultiFractal for HybridMulti {
         Self {
             octaves,
             sources: super::build_sources(self.seed, octaves),
+            scale_factor: Self::calc_scale_factor(self.persistence, octaves),
             ..self
         }
     }
@@ -93,6 +120,7 @@ impl MultiFractal for HybridMulti {
     fn set_persistence(self, persistence: f64) -> Self {
         Self {
             persistence,
+            scale_factor: Self::calc_scale_factor(persistence, self.octaves),
             ..self
         }
     }
@@ -148,7 +176,7 @@ impl NoiseFn<f64, 2> for HybridMulti {
         }
 
         // Scale the result to the [-1,1] range
-        result * 3.0
+        result * self.scale_factor
     }
 }
 
@@ -184,7 +212,7 @@ impl NoiseFn<f64, 3> for HybridMulti {
         }
 
         // Scale the result to the [-1,1] range
-        result * 3.0
+        result * self.scale_factor
     }
 }
 
@@ -220,6 +248,6 @@ impl NoiseFn<f64, 4> for HybridMulti {
         }
 
         // Scale the result to the [-1,1] range
-        result * 3.0
+        result * self.scale_factor
     }
 }

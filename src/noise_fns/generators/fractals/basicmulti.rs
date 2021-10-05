@@ -46,6 +46,7 @@ pub struct BasicMulti {
 
     seed: u32,
     sources: Vec<Perlin>,
+    scale_factor: f64,
 }
 
 impl BasicMulti {
@@ -64,7 +65,18 @@ impl BasicMulti {
             lacunarity: Self::DEFAULT_LACUNARITY,
             persistence: Self::DEFAULT_PERSISTENCE,
             sources: super::build_sources(Self::DEFAULT_SEED, Self::DEFAULT_OCTAVES),
+            scale_factor: Self::calc_scale_factor(Self::DEFAULT_PERSISTENCE, Self::DEFAULT_OCTAVES),
         }
+    }
+
+    fn calc_scale_factor(persistence: f64, octaves: usize) -> f64 {
+        let denom = if octaves == 1 {
+            1.0
+        } else {
+            (1..=octaves).fold(1.0, |acc, x| acc + (acc * persistence.powi(x as i32)))
+        };
+
+        1.0 / denom
     }
 }
 
@@ -84,6 +96,7 @@ impl MultiFractal for BasicMulti {
         Self {
             octaves,
             sources: super::build_sources(self.seed, octaves),
+            scale_factor: Self::calc_scale_factor(self.persistence, octaves),
             ..self
         }
     }
@@ -99,6 +112,7 @@ impl MultiFractal for BasicMulti {
     fn set_persistence(self, persistence: f64) -> Self {
         Self {
             persistence,
+            scale_factor: Self::calc_scale_factor(persistence, self.octaves),
             ..self
         }
     }
@@ -131,26 +145,29 @@ impl NoiseFn<f64, 2> for BasicMulti {
         point *= self.frequency;
         let mut result = self.sources[0].get(point.into_array());
 
-        // Spectral construction inner loop, where the fractal is built.
-        for x in 1..self.octaves {
-            // Raise the spatial frequency.
-            point *= self.lacunarity;
+        // if only 1 octave of noise, then return result unchanged, otherwise process another octave
+        if self.octaves > 1 {
+            // Spectral construction inner loop, where the fractal is built.
+            for x in 1..self.octaves {
+                // Raise the spatial frequency.
+                point *= self.lacunarity;
 
-            // Get noise value.
-            let mut signal = self.sources[x].get(point.into_array());
+                // Get noise value.
+                let mut signal = self.sources[x].get(point.into_array());
 
-            // Scale the amplitude appropriately for this frequency.
-            signal *= self.persistence.powi(x as i32);
+                // Scale the amplitude appropriately for this frequency.
+                signal *= self.persistence.powi(x as i32);
 
-            // Scale the signal by the current 'altitude' of the function.
-            signal *= result;
+                // Scale the signal by the current 'altitude' of the function.
+                signal *= result;
 
-            // Add signal to result.
-            result += signal;
+                // Add signal to result.
+                result += signal;
+            }
         }
 
         // Scale the result to the [-1,1] range.
-        result * 0.5
+        result * self.scale_factor
     }
 }
 
@@ -163,26 +180,29 @@ impl NoiseFn<f64, 3> for BasicMulti {
         point *= self.frequency;
         let mut result = self.sources[0].get(point.into_array());
 
-        // Spectral construction inner loop, where the fractal is built.
-        for x in 1..self.octaves {
-            // Raise the spatial frequency.
-            point *= self.lacunarity;
+        // if only 1 octave of noise, then return result unchanged, otherwise process another octave
+        if self.octaves > 1 {
+            // Spectral construction inner loop, where the fractal is built.
+            for x in 1..self.octaves {
+                // Raise the spatial frequency.
+                point *= self.lacunarity;
 
-            // Get noise value.
-            let mut signal = self.sources[x].get(point.into_array());
+                // Get noise value.
+                let mut signal = self.sources[x].get(point.into_array());
 
-            // Scale the amplitude appropriately for this frequency.
-            signal *= self.persistence.powi(x as i32);
+                // Scale the amplitude appropriately for this frequency.
+                signal *= self.persistence.powi(x as i32);
 
-            // Scale the signal by the current 'altitude' of the function.
-            signal *= result;
+                // Scale the signal by the current 'altitude' of the function.
+                signal *= result;
 
-            // Add signal to result.
-            result += signal;
+                // Add signal to result.
+                result += signal;
+            }
         }
 
         // Scale the result to the [-1,1] range.
-        result * 0.5
+        result * self.scale_factor
     }
 }
 
@@ -195,25 +215,28 @@ impl NoiseFn<f64, 4> for BasicMulti {
         point *= self.frequency;
         let mut result = self.sources[0].get(point.into_array());
 
-        // Spectral construction inner loop, where the fractal is built.
-        for x in 1..self.octaves {
-            // Raise the spatial frequency.
-            point *= self.lacunarity;
+        // if only 1 octave of noise, then return result unchanged, otherwise process another octave
+        if self.octaves > 1 {
+            // Spectral construction inner loop, where the fractal is built.
+            for x in 1..self.octaves {
+                // Raise the spatial frequency.
+                point *= self.lacunarity;
 
-            // Get noise value.
-            let mut signal = self.sources[x].get(point.into_array());
+                // Get noise value.
+                let mut signal = self.sources[x].get(point.into_array());
 
-            // Scale the amplitude appropriately for this frequency.
-            signal *= self.persistence.powi(x as i32);
+                // Scale the amplitude appropriately for this frequency.
+                signal *= self.persistence.powi(x as i32);
 
-            // Scale the signal by the current 'altitude' of the function.
-            signal *= result;
+                // Scale the signal by the current 'altitude' of the function.
+                signal *= result;
 
-            // Add signal to result.
-            result += signal;
+                // Add signal to result.
+                result += signal;
+            }
         }
 
         // Scale the result to the [-1,1] range.
-        result * 0.5
+        result * self.scale_factor
     }
 }

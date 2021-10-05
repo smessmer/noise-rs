@@ -2,7 +2,7 @@
 
 extern crate noise;
 
-use noise::{utils::*, BasicMulti};
+use noise::{utils::*, BasicMulti, MultiFractal};
 
 fn main() {
     PlaneMapBuilder::new(BasicMulti::default())

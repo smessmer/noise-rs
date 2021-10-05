@@ -46,10 +46,6 @@ pub struct Billow {
     scale_factor: f64,
 }
 
-fn calc_scale_factor(persistence: f64, octaves: usize) -> f64 {
-    1.0 - persistence.powi(octaves as i32)
-}
-
 impl Billow {
     pub const DEFAULT_SEED: u32 = 0;
     pub const DEFAULT_OCTAVE_COUNT: usize = 6;
@@ -74,7 +70,9 @@ impl Billow {
     }
 
     fn calc_scale_factor(persistence: f64, octaves: usize) -> f64 {
-        1.0 - persistence.powi(octaves as i32)
+        let denom = (1..=octaves).fold(0.0, |acc, x| acc + persistence.powi(x as i32));
+
+        1.0 / denom
     }
 }
 
@@ -94,7 +92,7 @@ impl MultiFractal for Billow {
         Self {
             octaves,
             sources: super::build_sources(self.seed, octaves),
-            scale_factor: calc_scale_factor(self.persistence, octaves),
+            scale_factor: Self::calc_scale_factor(self.persistence, octaves),
             ..self
         }
     }
@@ -110,7 +108,7 @@ impl MultiFractal for Billow {
     fn set_persistence(self, persistence: f64) -> Self {
         Self {
             persistence,
-            scale_factor: calc_scale_factor(persistence, self.octaves),
+            scale_factor: Self::calc_scale_factor(persistence, self.octaves),
             ..self
         }
     }
@@ -152,7 +150,7 @@ impl NoiseFn<f64, 2> for Billow {
             signal = scale_shift(signal, 2.0);
 
             // Scale the amplitude appropriately for this frequency.
-            signal *= self.persistence.powi(x as i32);
+            signal *= self.persistence.powi((x as i32) + 1);
 
             // Add the signal to the result.
             result += signal;
@@ -162,7 +160,7 @@ impl NoiseFn<f64, 2> for Billow {
         }
 
         // Scale the result to the [-1,1] range.
-        result / self.scale_factor
+        result * self.scale_factor
     }
 }
 
@@ -184,7 +182,7 @@ impl NoiseFn<f64, 3> for Billow {
             signal = scale_shift(signal, 2.0);
 
             // Scale the amplitude appropriately for this frequency.
-            signal *= self.persistence.powi(x as i32);
+            signal *= self.persistence.powi((x as i32) + 1);
 
             // Add the signal to the result.
             result += signal;
@@ -194,7 +192,7 @@ impl NoiseFn<f64, 3> for Billow {
         }
 
         // Scale the result to the [-1,1] range.
-        result / self.scale_factor
+        result * self.scale_factor
     }
 }
 
@@ -216,7 +214,7 @@ impl NoiseFn<f64, 4> for Billow {
             signal = scale_shift(signal, 2.0);
 
             // Scale the amplitude appropriately for this frequency.
-            signal *= self.persistence.powi(x as i32);
+            signal *= self.persistence.powi((x as i32) + 1);
 
             // Add the signal to the result.
             result += signal;
@@ -226,6 +224,6 @@ impl NoiseFn<f64, 4> for Billow {
         }
 
         // Scale the result to the [-1,1] range.
-        result / self.scale_factor
+        result * self.scale_factor
     }
 }
