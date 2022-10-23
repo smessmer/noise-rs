@@ -55,10 +55,6 @@ pub struct Fbm<T> {
     scale_factor: f64,
 }
 
-fn calc_scale_factor(persistence: f64, octaves: usize) -> f64 {
-    1.0 - persistence.powi(octaves as i32)
-}
-
 impl<T> Fbm<T>
 where
     T: Default + Seedable,
@@ -78,12 +74,18 @@ where
             lacunarity: Self::DEFAULT_LACUNARITY,
             persistence: Self::DEFAULT_PERSISTENCE,
             sources: super::build_sources(seed, Self::DEFAULT_OCTAVE_COUNT),
-            scale_factor: calc_scale_factor(Self::DEFAULT_PERSISTENCE, Self::DEFAULT_OCTAVE_COUNT),
+            scale_factor: Self::calc_scale_factor(Self::DEFAULT_PERSISTENCE, Self::DEFAULT_OCTAVE_COUNT),
         }
     }
 
     pub fn set_sources(self, sources: Vec<T>) -> Self {
         Self { sources, ..self }
+    }
+
+    fn calc_scale_factor(persistence: f64, octaves: usize) -> f64 {
+        let denom = (1..=octaves).fold(0.0, |acc, x| acc + persistence.powi(x as i32));
+
+        1.0 / denom
     }
 }
 
@@ -109,7 +111,7 @@ where
         Self {
             octaves,
             sources: super::build_sources(self.seed, octaves),
-            scale_factor: calc_scale_factor(self.persistence, octaves),
+            scale_factor: Self::calc_scale_factor(self.persistence, octaves),
             ..self
         }
     }
@@ -125,7 +127,7 @@ where
     fn set_persistence(self, persistence: f64) -> Self {
         Self {
             persistence,
-            scale_factor: calc_scale_factor(persistence, self.octaves),
+            scale_factor: Self::calc_scale_factor(persistence, self.octaves),
             ..self
         }
     }
@@ -169,7 +171,7 @@ where
             let mut signal = self.sources[x].get(point.into_array());
 
             // Scale the amplitude appropriately for this frequency.
-            signal *= self.persistence.powi(x as i32);
+            signal *= self.persistence.powi((x as i32) + 1);
 
             // Add the signal to the result.
             result += signal;
@@ -179,7 +181,7 @@ where
         }
 
         // Scale the result into the [-1,1] range
-        result / self.scale_factor
+        result * self.scale_factor
     }
 }
 
@@ -200,7 +202,7 @@ where
             let mut signal = self.sources[x].get(point.into_array());
 
             // Scale the amplitude appropriately for this frequency.
-            signal *= self.persistence.powi(x as i32);
+            signal *= self.persistence.powi((x as i32) + 1);
 
             // Add the signal to the result.
             result += signal;
@@ -210,7 +212,7 @@ where
         }
 
         // Scale the result into the [-1,1] range
-        result / self.scale_factor
+        result * self.scale_factor
     }
 }
 
@@ -231,7 +233,7 @@ where
             let mut signal = self.sources[x].get(point.into_array());
 
             // Scale the amplitude appropriately for this frequency.
-            signal *= self.persistence.powi(x as i32);
+            signal *= self.persistence.powi((x as i32) + 1);
 
             // Add the signal to the result.
             result += signal;
@@ -241,6 +243,6 @@ where
         }
 
         // Scale the result into the [-1,1] range
-        result / self.scale_factor
+        result * self.scale_factor
     }
 }
